@@ -1,0 +1,10 @@
+SELECT date_trunc('month',r.rental_date) MonthDate,
+       st.store_id,
+       count(1) rental_count
+FROM store st
+JOIN staff s ON s.store_id = st.store_id
+JOIN rental r ON r.staff_id = s.staff_id
+GROUP BY 1,
+         2
+ORDER BY 2,
+         1

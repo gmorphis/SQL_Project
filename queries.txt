@@ -1,0 +1,94 @@
+/************************************************************/
+question 1
+/************************************************************/
+SELECT title, name as Category, rentalcount
+FROM
+  (SELECT title,
+          name,
+          rentalcount,
+          rank() over(PARTITION BY name
+                      ORDER BY rentalcount DESC) rental_rank,
+          row_number() OVER (PARTITION BY name
+                      ORDER BY rentalcount DESC) rn
+   FROM
+     (SELECT f.title,
+             c."name",
+             count(r.rental_id) rentalcount
+      FROM film f
+      JOIN film_category fc ON f.film_id = fc.film_id
+      JOIN category c ON fc.category_id = c.category_id
+      JOIN inventory i ON i.film_id = f.film_id
+      JOIN rental r ON r.inventory_id = i.inventory_id
+      WHERE c."name" in ('Animation',
+                         'Children',
+                         'Classics',
+                         'Comedy',
+                         'Family',
+                         'Music')
+      GROUP BY 1,
+               2
+      ORDER BY 2,
+               3 DESC) rentals
+   ORDER BY name,
+            rental_rank) q
+WHERE rn <= 5
+
+
+
+/************************************************************/
+question 2
+/************************************************************/
+SELECT Name AS Category,
+       round((avg_actual_rental_dur / avg_poss_rental_dur) * 100) AS DurationOut
+FROM
+  (SELECT c.category_id,
+          c.name,
+          avg(f.rental_duration) avg_poss_rental_dur,
+          avg(date_part('day', rental_date) - date_part('day', return_date)) avg_actual_rental_dur
+   FROM rental r
+   JOIN inventory i ON r.inventory_id = i.inventory_id
+   JOIN film f ON f.film_id = i.film_id
+   JOIN film_category fc ON fc.film_id = f.film_id
+   JOIN category c ON c.category_id = fc.category_id
+   GROUP BY c.category_id,
+            c.name) q
+ORDER BY Name
+
+
+
+
+/************************************************************/
+question 3
+/************************************************************/
+
+SELECT date_trunc('month',r.rental_date) MonthDate,
+       st.store_id,
+       count(1) rental_count
+FROM store st
+JOIN staff s ON s.store_id = st.store_id
+JOIN rental r ON r.staff_id = s.staff_id
+GROUP BY 1,
+         2
+ORDER BY 2,
+         1
+
+
+/************************************************************/
+question 4
+/************************************************************/
+
+WITH cte AS
+  (/* get top 10 paying customers of all */ SELECT p.customer_id,
+                                                   sum(amount) total_amount
+   FROM payment p
+   GROUP BY customer_id
+   ORDER BY 2 DESC
+   LIMIT 10)
+SELECT cu.first_name || ' ' || cu.last_name AS full_name, --DATE_TRUNC('month',p.payment_date) AS mon,-- count(1) as count_payment,
+sum(p.amount) AS payment_amount
+FROM customer cu
+JOIN payment p ON p.customer_id = cu.customer_id
+JOIN cte c ON cu.customer_id = c.customer_id
+WHERE p.payment_date BETWEEN '2007-01-01' AND '2008-01-01'
+GROUP BY 1
+ORDER BY 1

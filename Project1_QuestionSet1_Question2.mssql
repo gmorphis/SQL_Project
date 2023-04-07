@@ -1,0 +1,15 @@
+SELECT Name AS Category,
+       round((avg_actual_rental_dur / avg_poss_rental_dur) * 100) AS DurationOut
+FROM
+  (SELECT c.category_id,
+          c.name,
+          avg(f.rental_duration) avg_poss_rental_dur,
+          avg(date_part('day', rental_date) - date_part('day', return_date)) avg_actual_rental_dur
+   FROM rental r
+   JOIN inventory i ON r.inventory_id = i.inventory_id
+   JOIN film f ON f.film_id = i.film_id
+   JOIN film_category fc ON fc.film_id = f.film_id
+   JOIN category c ON c.category_id = fc.category_id
+   GROUP BY c.category_id,
+            c.name) q
+ORDER BY Name

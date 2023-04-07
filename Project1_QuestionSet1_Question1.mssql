@@ -1,0 +1,45 @@
+/*
+Create a query that lists each movie, the film category it is classified in, and the number of times it has been rented out.
+
+Check Your Solution
+For this query, you will need 5 tables: Category, Film_Category, Inventory, Rental and Film. Your solution should have three columns: Film title, Category name and Count of Rentals.
+
+The following table header provides a preview of what the resulting table should look like if you order by category name followed by the film title.
+
+
+Create a query that shows the top 5 rented movies, title and category from each Family Category: Animation, Children, Classics, Comedy, Family, Music
+
+
+
+*/
+SELECT title, name as Category, rentalcount
+FROM
+  (SELECT title,
+          name,
+          rentalcount,
+          rank() over(PARTITION BY name
+                      ORDER BY rentalcount DESC) rental_rank,
+          row_number() OVER (PARTITION BY name
+                      ORDER BY rentalcount DESC) rn
+   FROM
+     (SELECT f.title,
+             c."name",
+             count(r.rental_id) rentalcount
+      FROM film f
+      JOIN film_category fc ON f.film_id = fc.film_id
+      JOIN category c ON fc.category_id = c.category_id
+      JOIN inventory i ON i.film_id = f.film_id
+      JOIN rental r ON r.inventory_id = i.inventory_id
+      WHERE c."name" in ('Animation',
+                         'Children',
+                         'Classics',
+                         'Comedy',
+                         'Family',
+                         'Music')
+      GROUP BY 1,
+               2
+      ORDER BY 2,
+               3 DESC) rentals
+   ORDER BY name,
+            rental_rank) q
+WHERE rn <= 5
